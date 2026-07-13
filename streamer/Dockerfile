@@ -6,7 +6,7 @@ COPY go.mod ./
 COPY go.sum* ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/streamer ./streamer/cmd/streamer
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/streamer ./streamer/cmd
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
