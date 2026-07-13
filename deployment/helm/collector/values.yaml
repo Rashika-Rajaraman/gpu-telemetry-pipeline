@@ -1,0 +1,26 @@
+# Collector values. Scales via replicaCount; all replicas join one consumer group
+# and the broker rebalances partitions across them.
+replicaCount: 2
+
+image:
+  repository: localhost:5001/collector
+  tag: dev
+  pullPolicy: IfNotPresent
+
+env:
+  BROKER_ADDR: "messagequeue:9000"
+  GROUP: "collectors"
+  TOPIC: "telemetry"
+  BATCH_SIZE: "200"
+
+database:
+  # DSN assembled from the database chart's service + secret.
+  dsn: "postgres://telemetry:telemetry@database:5432/telemetry?sslmode=disable"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi

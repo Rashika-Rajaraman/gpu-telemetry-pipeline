@@ -1,0 +1,37 @@
+# Streamer runs as a StatefulSet so each replica gets a stable ordinal, used to
+# shard the CSV (rowIndex % REPLICAS == ORDINAL) with no duplicate streaming.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: streamer
+  labels:
+    app: streamer
+spec:
+  serviceName: streamer
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: streamer
+  template:
+    metadata:
+      labels:
+        app: streamer
+    spec:
+      containers:
+        - name: streamer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            # ORDINAL is derived from the pod name suffix by the app at startup.
+            - name: REPLICAS
+              value: "{{ .Values.replicaCount }}"
+            {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

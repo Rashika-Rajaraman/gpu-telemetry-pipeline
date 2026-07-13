@@ -1,0 +1,6 @@
+apiVersion: v2
+name: messagequeue
+description: Custom message queue broker (partitions, consumer groups, backpressure)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

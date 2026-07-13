@@ -1,0 +1,6 @@
+apiVersion: v2
+name: streamer
+description: Telemetry Streamer — reads DCGM CSV and publishes to the message queue
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

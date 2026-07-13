@@ -1,0 +1,14 @@
+# Headless service giving streamer pods stable network identities.
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamer
+  labels:
+    app: streamer
+spec:
+  clusterIP: None
+  selector:
+    app: streamer
+  ports:
+    - name: placeholder
+      port: 9999

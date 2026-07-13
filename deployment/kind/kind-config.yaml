@@ -1,0 +1,14 @@
+# kind cluster config for the telemetry pipeline.
+# One control-plane + two workers so streamer/collector replicas spread across nodes.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: telemetry
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # API gateway NodePort → localhost:8080
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+  - role: worker
+  - role: worker

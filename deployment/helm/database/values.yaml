@@ -1,0 +1,24 @@
+image:
+  repository: postgres
+  tag: "16-alpine"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 5432
+
+auth:
+  database: telemetry
+  username: telemetry
+  # Demo credentials only. For real deployments, source from a Secret/secret manager.
+  password: telemetry
+
+persistence:
+  size: 1Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

@@ -65,23 +65,44 @@ docker/%: ## Build one image, e.g. make docker/broker (maps to messagequeue)
 
 ## ---- Kind / Helm ---------------------------------------------------------
 .PHONY: kind-up
-kind-up: ## Create local kind cluster + registry
+kind-up: ## Create the local kind cluster
 	./scripts/kind-up.sh
 
 .PHONY: images-load
-images-load: ## Build & push all images into the kind registry
+images-load: ## Build the 4 component images and load them into kind
 	./scripts/load-images.sh
 
 .PHONY: helm-install
-helm-install: ## Install all 5 charts into the cluster
-	@for c in $(COMPONENTS) database; do \
+helm-install: ## Install all charts (database first, then components)
+	helm upgrade --install database deployment/helm/database
+	@for c in $(COMPONENTS); do \
 		echo ">> helm install $$c"; \
 		helm upgrade --install $$c deployment/helm/$$c --set image.repository=$(REGISTRY)/$$c --set image.tag=$(TAG) ; \
 	done
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Remove all charts
-	@for c in $(COMPONENTS) database; do helm uninstall $$c || true ; done
+	@for c in database $(COMPONENTS); do helm uninstall $$c || true ; done
+
+.PHONY: deploy
+deploy: kind-up images-load helm-install ## One-shot: cluster + images + charts, then wait for rollout
+	@echo ">> waiting for workloads to become ready"
+	kubectl rollout status statefulset/database --timeout=180s
+	kubectl rollout status deployment/messagequeue --timeout=120s
+	kubectl rollout status deployment/collector --timeout=120s
+	kubectl rollout status deployment/apigateway --timeout=120s
+	kubectl rollout status statefulset/streamer --timeout=120s
+	@echo ">> pipeline deployed. API at http://localhost:8080 (try: make smoke)"
+
+.PHONY: smoke
+smoke: ## Quick end-to-end check against the deployed API
+	@echo ">> GET /api/v1/gpus"
+	curl -fsS localhost:8080/api/v1/gpus | head -c 400 ; echo
+	@echo ">> GET /healthz" ; curl -fsS localhost:8080/healthz ; echo
+
+.PHONY: teardown
+teardown: ## Delete the kind cluster
+	kind delete cluster --name telemetry
 
 ## ---- Housekeeping --------------------------------------------------------
 .PHONY: tidy

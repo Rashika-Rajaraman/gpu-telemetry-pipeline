@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: localhost:5001/apigateway
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+  # NodePort mapped to localhost:8080 by the kind config.
+  nodePort: 30080
+
+env:
+  LISTEN_ADDR: ":8080"
+
+database:
+  dsn: "postgres://telemetry:telemetry@database:5432/telemetry?sslmode=disable"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi

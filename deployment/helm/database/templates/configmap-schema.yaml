@@ -1,0 +1,26 @@
+# Schema loaded on first init via docker-entrypoint-initdb.d.
+# Mirrors database/init/01_schema.sql (kept in sync manually / via templating).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-init
+  labels:
+    app: database
+data:
+  01_schema.sql: |
+    CREATE TABLE IF NOT EXISTS gpu_samples (
+        id          BIGINT GENERATED ALWAYS AS IDENTITY,
+        ts          TIMESTAMPTZ NOT NULL,
+        metric      TEXT NOT NULL,
+        value       DOUBLE PRECISION NOT NULL,
+        uuid        TEXT NOT NULL,
+        gpu_index   TEXT NOT NULL,
+        device      TEXT NOT NULL DEFAULT '',
+        model_name  TEXT NOT NULL DEFAULT '',
+        hostname    TEXT NOT NULL DEFAULT '',
+        PRIMARY KEY (id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_gpu_samples_uuid_ts ON gpu_samples (uuid, ts);
+    CREATE INDEX IF NOT EXISTS idx_gpu_samples_uuid ON gpu_samples (uuid);
+    CREATE INDEX IF NOT EXISTS idx_gpu_samples_metric_ts ON gpu_samples (uuid, metric, ts);
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_gpu_samples_dedup ON gpu_samples (uuid, metric, ts);

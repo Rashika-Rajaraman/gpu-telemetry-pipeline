@@ -78,9 +78,14 @@ make lint       # go vet
 ## Deploy to kind
 
 ```bash
-make kind-up        # create cluster + local registry
-make images-load    # build & push all 5 images
-make helm-install   # install all 5 charts
+make deploy         # one-shot: cluster + images + charts + rollout wait
+make smoke          # verify the API end to end
+make teardown       # delete the cluster
+
+# or run the phases individually:
+make kind-up        # create the local cluster
+make images-load    # build the 4 component images and load them into kind
+make helm-install   # install all charts (database first, then components)
 ```
 
 ## AI assistance
@@ -154,7 +159,9 @@ OpenAPI.
 
 ### Observability & error handling
 
-- Structured JSON logging (`log/slog`) in every binary.
+- Structured logging via **logrus** in every binary; log level and format are
+  configurable through the Kubernetes ConfigMap (`LOG_LEVEL`, `LOG_FORMAT`)
+  without a rebuild.
 - API gateway exposes `/healthz`, `/readyz`, and a dependency-free `/metrics`
   (Prometheus text) with request/error counters.
 - Every service retries its dependencies with backoff (broker/DB may start later
@@ -182,11 +189,19 @@ build-tagged integration tests (`//go:build integration`) that require a live DB
 Requires Docker, kind, kubectl, and Helm.
 
 ```bash
+make deploy         # create cluster, build+load images, install charts, wait
+kubectl get pods    # all components Running
+make smoke          # curl the API to confirm data is flowing
+
+# equivalent explicit steps:
 make kind-up        # create the local cluster
-make images-load    # build all 5 images and load them into kind
+make images-load    # build the 4 component images and load them into kind
 make helm-install   # install database, broker, collector, streamer, apigateway
-kubectl get pods    # wait until everything is Running
 ```
+
+PostgreSQL uses the stock `postgres:16-alpine` image (pulled by kind on demand)
+with the schema applied on first start; the four Go components are loaded via
+`kind load`, so no external registry is required.
 
 ## Sample user workflow
 
