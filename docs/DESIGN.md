@@ -115,6 +115,19 @@ different streamer. This is harmless here — the CSV is replayed indefinitely a
 sample's timestamp is assigned at ingestion rather than read from the CSV, so every
 pass is simply fresh telemetry rather than duplicated history.
 
+**Known boundary — scale streamers via Helm, not `kubectl scale`.** A streamer derives
+its shard from two values: its ordinal (from the pod name) and the total replica count
+(`REPLICAS`, rendered from `replicaCount` at install time). `kubectl scale` changes only
+the number of pods, not the `REPLICAS` value already baked into the running pods, so a
+pod added that way inherits a stale count and owns no shard — `idx % REPLICAS == ordinal`
+never matches for the new ordinal, and the pod runs but publishes nothing. Streamers must
+therefore be scaled through Helm (`--set replicaCount=N`), which re-renders `REPLICAS` and
+restarts the pods to re-shard cleanly. Collectors have no such limitation: the broker
+assigns their work at runtime, so `kubectl scale` rebalances them immediately (Section
+5.2). Making the streamer discover its replica count at runtime — via the Kubernetes API
+or peer DNS — would remove this boundary, at the cost of coordination the producer does
+not otherwise need; it is left as a future improvement (Section 11).
+
 ## 5. Message Queue
 
 The message queue is the core of the system. Its responsibility is to decouple
@@ -449,6 +462,10 @@ the durability and partition-scaling items in Section 11 address the queue's lim
 * **Automatic partition scaling** to grow consumer parallelism beyond the current
   fixed partition count.
 * **Dead-letter handling** for records that repeatedly fail to process.
+* **Runtime replica discovery for the streamer** — let a streamer read the current
+  replica count at runtime (from the Kubernetes API or peer DNS) and re-shard on change,
+  so `kubectl scale` alone puts a new producer to work without a Helm re-render (see the
+  known boundary in Section 4.1).
 * **Data retention and lifecycle management** — the `gpu_samples` table is append-only
   and grows without bound, so a long-running deployment eventually exhausts database
   storage (at which point writes fail and backpressure halts ingestion until space is
