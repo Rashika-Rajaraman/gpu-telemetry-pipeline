@@ -92,11 +92,12 @@ rows whose index satisfies
 row_index % replica_count == ordinal
 ```
 
-where `N` is the replica count and the ordinal is derived from the replica's identity.
-Each replica therefore publishes every Nth row — replica *i* takes the rows whose index
-leaves remainder *i*. With two replicas this is just the even/odd split; with N
-replicas each takes a disjoint 1/N share, and together they cover every row exactly
-once.
+where `replica_count` is the number of replicas and `ordinal` is a replica's stable
+index (0, 1, 2, …). In Kubernetes the streamer runs as a StatefulSet, which gives each
+pod exactly that fixed ordinal. Each replica therefore publishes every Nth row —
+replica *i* takes the rows whose index leaves remainder *i*. With two replicas this is
+just the even/odd split; with N replicas each takes a disjoint 1/N share, and together
+they cover every row exactly once.
 
 ```mermaid
 flowchart TD
@@ -107,8 +108,12 @@ flowchart TD
     CSV -->|row_index % N == N-1| SN[Streamer N-1]
 ```
 
-Changing the replica count simply changes the divisor, redistributing the rows with no
-duplicated telemetry and no coordination between replicas.
+Changing the replica count just changes the divisor — no coordination between replicas
+is needed. Rescaling does shift the mapping: a given row index maps to a different
+replica before and after the change, so around a rescale some rows are published by a
+different streamer. This is harmless here — the CSV is replayed indefinitely and each
+sample's timestamp is assigned at ingestion rather than read from the CSV, so every
+pass is simply fresh telemetry rather than duplicated history.
 
 ## 5. Message Queue
 
@@ -117,6 +122,16 @@ telemetry production from consumption while maintaining throughput and reliabili
 is implemented as a standalone service rather than a shared library, so it can be
 deployed, upgraded, monitored, and scaled independently of the applications that use
 it.
+
+**Transport.** Streamers and collectors talk to the broker over a **custom TCP
+protocol**, not HTTP or gRPC. Each message is a length-prefixed binary frame: a 4-byte
+length, a 1-byte opcode (publish, subscribe, poll, acknowledge, heartbeat), and a JSON
+payload. TCP was chosen deliberately — the exercise calls for a genuinely custom queue,
+and long-lived connections suit the continuous, bidirectional flow of frames
+(deliveries out, acks back) with low per-message overhead; the length prefix makes
+framing unambiguous and JSON keeps it easy to debug. The client SDK
+(`messagequeue/client`) hides the wire format behind a small Publish/Subscribe/Poll/Ack
+API.
 
 ### 5.1 Partitioning
 
@@ -190,18 +205,23 @@ Because a partition cannot be shared, the partition count caps consumer parallel
 | 4 | 4 | 1 partition each |
 | 4 | 5 | one collector idle |
 
-The system runs **16 partitions for up to 10 collectors**, leaving headroom for even,
-scalable distribution.
+The system runs **16 partitions for up to 10 collectors**. Sixteen comfortably exceeds
+the expected collector ceiling (10), so every collector owns at least one partition
+with room to spare — load stays balanced and collectors can scale further without
+repartitioning — while the count is small enough to keep partition management simple.
+Because the partition count is fixed for a topic's life, it is set above the
+anticipated ceiling rather than tuned to the current replica count.
 
 ### 5.3 Delivery and Reliability
 
 The queue guarantees **at-least-once delivery**: nothing is lost, but a record may
 occasionally be processed more than once.
 
-Each partition tracks one number per group — the **committed offset**, a bookmark
-marking "everything below here is processed and acknowledged." It advances only when a
-collector acknowledges; the broker may deliver ahead of it, and the gap is the
-in-flight (unacknowledged) records.
+Each partition tracks two bookmarks per group. The **committed offset** marks
+"everything below here is processed and acknowledged" and advances only when a
+collector acknowledges. The **delivered offset** marks how far the broker has handed
+records out. The gap between them is the in-flight records — delivered but not yet
+acknowledged.
 
 ```mermaid
 flowchart LR
@@ -264,6 +284,23 @@ flowchart LR
 Because a full buffer slows producers rather than growing without bound, a slow or
 absent consumer cannot exhaust broker memory, which protects stability during traffic
 spikes.
+
+### 5.5 Broker Failure Semantics
+
+The broker is intentionally **in-memory**: partitions, offsets, and buffered records
+live only in the broker process's memory and are not persisted to disk. This keeps the
+implementation simple and delivery latency low, but it has a direct consequence — if
+the broker restarts or crashes, any telemetry that is still buffered in memory and has
+not yet been consumed and acknowledged is lost. Committed offsets are likewise held in
+memory, so a restarted broker begins from an empty state.
+
+This tradeoff is acceptable here. The streamers regenerate telemetry continuously (the
+CSV is replayed indefinitely), so the pipeline refills with current data within moments
+of a restart, and GPU telemetry tolerates occasional gaps — the operational picture
+comes from continuous trends, not any single sample. The design therefore favors
+simplicity and throughput over durable buffering. Section 10 lists this as an explicit
+tradeoff, and Section 11 outlines the durability path (a write-ahead log and replicated
+brokers) for deployments that cannot tolerate the loss.
 
 ## 6. Telemetry Collector
 
@@ -380,7 +417,26 @@ ingestion to storage. As the system grows, natural signals to surface include
 per-partition queue depth, publish and consume rates, consumer lag, and database
 write failures.
 
-## 10. Future Improvements
+## 10. Design Tradeoffs
+
+The design makes deliberate tradeoffs, favoring simplicity, low latency, and
+independent scaling at the target scale (≤10 streamers/collectors) over the stronger
+durability and delivery guarantees a large-scale system would need. The key decisions:
+
+| Decision | Benefit | Tradeoff |
+|---|---|---|
+| At-least-once delivery | Simple, reliable delivery guarantees | Duplicate processing possible (neutralized by idempotent writes) |
+| In-memory queue | Low latency and simple implementation | Broker restart causes loss of buffered, unacknowledged messages |
+| Fixed partition count | Simple implementation and predictable scaling | Consumer parallelism capped by the partition count |
+| PostgreSQL storage | Mature ecosystem, strong indexing, idempotency via constraints | Less optimized for very large-scale time-series workloads than a specialized TSDB |
+| Consumer-group model | Horizontal scaling while preserving per-GPU ordering | Requires partition-ownership and rebalancing logic |
+| Custom TCP protocol | Full control, low overhead, a genuinely custom queue | More protocol code to maintain than reusing HTTP/gRPC |
+
+Each tradeoff is reversible without redesigning the system: idempotent writes already
+absorb duplicates, TimescaleDB offers an in-place storage upgrade (Section 7.2), and
+the durability and partition-scaling items in Section 11 address the queue's limits.
+
+## 11. Future Improvements
 
 * **Broker durability and high availability** — persist the partition logs (for
   example via a write-ahead log) and add replicated brokers with leader election so
@@ -389,5 +445,5 @@ write failures.
 * **Automatic partition scaling** to grow consumer parallelism beyond the current
   fixed partition count.
 * **Dead-letter handling** for records that repeatedly fail to process.
-* **Authentication and authorization** on the API and the broker.
+* **Authentication, authorization, and TLS** on the API and the broker.
 * **Multi-cluster deployment** for cross-region resilience.
