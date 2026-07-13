@@ -35,8 +35,11 @@ in [docs/DESIGN.md](docs/DESIGN.md).**
 
 ## Prerequisites
 
+- A Unix-like shell with **GNU Make** (Linux, macOS, or WSL) — every command below is
+  a `make` target, and the helper scripts are bash
 - Go 1.25+ — for `make build` / `make test` / `make cover`
-- Docker, [kind](https://kind.sigs.k8s.io/), kubectl, and Helm — for deployment
+- A running **Docker** daemon, plus [kind](https://kind.sigs.k8s.io/), kubectl, and
+  Helm — for deployment
 
 ## Build & test
 
@@ -61,6 +64,9 @@ make deploy     # create cluster, build+load images, install all charts, wait fo
 make smoke      # curl the API to confirm telemetry is flowing
 make teardown   # delete the cluster
 ```
+
+> Re-running `make deploy` on an existing cluster fails at cluster creation — run
+> `make teardown` first, or use the individual phases below.
 
 Run the phases individually if you prefer:
 
