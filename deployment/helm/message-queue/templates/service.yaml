@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-queue
+  labels:
+    app: message-queue
+spec:
+  selector:
+    app: message-queue
+  ports:
+    - name: broker
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}

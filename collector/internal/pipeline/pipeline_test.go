@@ -7,7 +7,7 @@ import (
 
 	"github.com/gpu-telemetry-pipeline/collector/internal/parser"
 	"github.com/gpu-telemetry-pipeline/collector/internal/writer"
-	"github.com/gpu-telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/message-queue/client"
 )
 
 // fakeConsumer yields a fixed set of record batches, then cancels the context so

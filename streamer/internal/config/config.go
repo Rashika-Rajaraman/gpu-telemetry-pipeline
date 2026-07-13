@@ -29,7 +29,7 @@ type Config struct {
 // (as set for StatefulSet pods, e.g. "streamer-2" -> 2).
 func Load() Config {
 	return Config{
-		BrokerAddr: getenv("BROKER_ADDR", "messagequeue:9000"),
+		BrokerAddr: getenv("BROKER_ADDR", "message-queue:9000"),
 		CSVPath:    getenv("CSV_PATH", "/data/dcgm_metrics_sample.csv"),
 		Topic:      getenv("TOPIC", "telemetry"),
 		Ordinal:    ordinal(),

@@ -28,7 +28,7 @@ type Config struct {
 // defaults to the pod hostname so each collector joins the group under a unique id.
 func Load() Config {
 	return Config{
-		BrokerAddr: getenv("BROKER_ADDR", "messagequeue:9000"),
+		BrokerAddr: getenv("BROKER_ADDR", "message-queue:9000"),
 		Group:      getenv("GROUP", "collectors"),
 		Topic:      getenv("TOPIC", "telemetry"),
 		ConsumerID: getenv("CONSUMER_ID", defaultConsumerID()),

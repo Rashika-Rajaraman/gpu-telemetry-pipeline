@@ -20,7 +20,7 @@ func TestLoadDefaults(t *testing.T) {
 	unsetAll(t)
 	cfg := Load()
 
-	if cfg.BrokerAddr != "messagequeue:9000" {
+	if cfg.BrokerAddr != "message-queue:9000" {
 		t.Errorf("BrokerAddr = %q", cfg.BrokerAddr)
 	}
 	if cfg.Group != "collectors" {

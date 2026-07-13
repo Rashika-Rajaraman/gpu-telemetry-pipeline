@@ -1,7 +1,7 @@
 # Telemetry Pipeline — root Makefile
 # Single Makefile with per-component targets (see README for rationale).
 
-COMPONENTS := streamer messagequeue collector apigateway
+COMPONENTS := streamer message-queue collector api-gateway
 MODULE     := github.com/gpu-telemetry-pipeline
 REGISTRY   ?= localhost:5001
 TAG        ?= dev
@@ -49,7 +49,7 @@ lint: ## Vet all packages
 ## ---- OpenAPI -------------------------------------------------------------
 .PHONY: openapi
 openapi: ## Generate api/openapi.yaml from the API gateway definitions
-	go run ./apigateway/cmd --dump-openapi > api/openapi.yaml
+	go run ./api-gateway/cmd --dump-openapi > api/openapi.yaml
 	@echo "wrote api/openapi.yaml"
 
 ## ---- Docker --------------------------------------------------------------
@@ -61,7 +61,7 @@ docker: ## Build all component images
 	done
 	docker build -f database/Dockerfile -t $(REGISTRY)/database:$(TAG) . || true
 
-docker/%: ## Build one image, e.g. make docker/broker (maps to messagequeue)
+docker/%: ## Build one image, e.g. make docker/broker (maps to message-queue)
 	docker build -f $*/Dockerfile -t $(REGISTRY)/$*:$(TAG) .
 
 ## ---- Kind / Helm ---------------------------------------------------------
@@ -89,9 +89,9 @@ helm-uninstall: ## Remove all charts
 deploy: kind-up images-load helm-install ## One-shot: cluster + images + charts, then wait for rollout
 	@echo ">> waiting for workloads to become ready"
 	kubectl rollout status statefulset/database --timeout=180s
-	kubectl rollout status deployment/messagequeue --timeout=120s
+	kubectl rollout status deployment/message-queue --timeout=120s
 	kubectl rollout status deployment/collector --timeout=120s
-	kubectl rollout status deployment/apigateway --timeout=120s
+	kubectl rollout status deployment/api-gateway --timeout=120s
 	kubectl rollout status statefulset/streamer --timeout=120s
 	@echo ">> pipeline deployed. API at http://localhost:8080 (try: make smoke)"
 

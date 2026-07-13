@@ -8,7 +8,7 @@ set -euo pipefail
 REGISTRY="${REGISTRY:-localhost:5001}"
 TAG="${TAG:-dev}"
 CLUSTER_NAME="${CLUSTER_NAME:-telemetry}"
-COMPONENTS=(streamer messagequeue collector apigateway)
+COMPONENTS=(streamer message-queue collector api-gateway)
 
 for c in "${COMPONENTS[@]}"; do
   echo ">> building ${c}"

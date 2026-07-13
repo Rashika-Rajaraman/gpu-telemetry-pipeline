@@ -10,13 +10,13 @@ exposed via a REST API. Everything deploys to Kubernetes (kind) via Helm.
 | Component | Directory | Role |
 |---|---|---|
 | Streamer | `streamer/` | Reads DCGM CSV, shards rows, publishes to the queue |
-| Message Queue | `messagequeue/` | Custom TCP broker: partitions, consumer groups, acks, backpressure |
+| Message Queue | `message-queue/` | Custom TCP broker: partitions, consumer groups, acks, backpressure |
 | Collector | `collector/` | Consumes, parses DCGM lines, persists samples |
-| API Gateway | `apigateway/` | REST API + auto-generated OpenAPI |
+| API Gateway | `api-gateway/` | REST API + auto-generated OpenAPI |
 | Database | `database/` | PostgreSQL schema (the collector↔API contract) |
 
 Each Go component is self-contained (its own `cmd/`, `internal/`, and tests). The
-only shared code is the queue's public client SDK (`messagequeue/client`).
+only shared code is the queue's public client SDK (`message-queue/client`).
 
 ## Architecture
 

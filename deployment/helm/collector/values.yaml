@@ -8,7 +8,7 @@ image:
   pullPolicy: IfNotPresent
 
 env:
-  BROKER_ADDR: "messagequeue:9000"
+  BROKER_ADDR: "message-queue:9000"
   GROUP: "collectors"
   TOPIC: "telemetry"
   BATCH_SIZE: "200"

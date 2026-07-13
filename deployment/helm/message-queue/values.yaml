@@ -1,0 +1,24 @@
+# Broker values. Single instance for the exercise (SPOF documented in README);
+# partitions provide intra-broker parallelism for up to 10 collectors.
+replicaCount: 1
+
+image:
+  repository: localhost:5001/message-queue
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  port: 9000
+
+env:
+  LISTEN_ADDR: ":9000"
+  PARTITIONS: "16"
+  BUFFER_SIZE: "10000"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

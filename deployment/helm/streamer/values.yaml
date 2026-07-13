@@ -8,7 +8,7 @@ image:
   pullPolicy: IfNotPresent
 
 env:
-  BROKER_ADDR: "messagequeue:9000"
+  BROKER_ADDR: "message-queue:9000"
   CSV_PATH: "/data/dcgm_metrics_sample.csv"
   TOPIC: "telemetry"
   INTERVAL_MS: "100"

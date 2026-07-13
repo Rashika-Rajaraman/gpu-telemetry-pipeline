@@ -16,7 +16,7 @@ import (
 	"github.com/gpu-telemetry-pipeline/collector/internal/config"
 	"github.com/gpu-telemetry-pipeline/collector/internal/pipeline"
 	"github.com/gpu-telemetry-pipeline/collector/internal/writer"
-	"github.com/gpu-telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/message-queue/client"
 )
 
 // defaultRetryBackoff is the wait between dependency connection attempts.

@@ -11,7 +11,7 @@ import (
 
 	"github.com/gpu-telemetry-pipeline/collector/internal/parser"
 	"github.com/gpu-telemetry-pipeline/collector/internal/writer"
-	"github.com/gpu-telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/message-queue/client"
 )
 
 // Consumer is the subset of the message-queue client the pipeline needs. It is

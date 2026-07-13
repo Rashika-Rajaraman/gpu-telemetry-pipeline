@@ -16,7 +16,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/gpu-telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/message-queue/client"
 	"github.com/gpu-telemetry-pipeline/streamer/internal/config"
 	"github.com/gpu-telemetry-pipeline/streamer/internal/publisher"
 	"github.com/gpu-telemetry-pipeline/streamer/internal/source"

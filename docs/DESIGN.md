@@ -139,7 +139,7 @@ payload. TCP was chosen deliberately — the exercise calls for a genuinely cust
 and long-lived connections suit the continuous, bidirectional flow of frames
 (deliveries out, acks back) with low per-message overhead; the length prefix makes
 framing unambiguous and JSON keeps it easy to debug. The client SDK
-(`messagequeue/client`) hides the wire format behind a small Publish/Subscribe/Poll/Ack
+(`message-queue/client`) hides the wire format behind a small Publish/Subscribe/Poll/Ack
 API.
 
 ### 5.1 Partitioning
