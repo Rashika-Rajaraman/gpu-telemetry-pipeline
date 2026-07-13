@@ -449,5 +449,12 @@ the durability and partition-scaling items in Section 11 address the queue's lim
 * **Automatic partition scaling** to grow consumer parallelism beyond the current
   fixed partition count.
 * **Dead-letter handling** for records that repeatedly fail to process.
+* **Data retention and lifecycle management** — the `gpu_samples` table is append-only
+  and grows without bound, so a long-running deployment eventually exhausts database
+  storage (at which point writes fail and backpressure halts ingestion until space is
+  freed). Production deployments would add time-based retention (dropping or archiving
+  old partitions), downsampling/rollups of older data, or adopt TimescaleDB (Section
+  7.2) for native retention policies and columnar compression, optionally tiering cold
+  data to object storage.
 * **Authentication, authorization, and TLS** on the API and the broker.
 * **Multi-cluster deployment** for cross-region resilience.
