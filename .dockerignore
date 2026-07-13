@@ -1,0 +1,9 @@
+.git
+bin/
+out/
+coverage.out
+coverage.html
+*.md
+deployment/
+scripts/
+.github/
