@@ -15,7 +15,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/apigateway/internal/store"
+	"github.com/gpu-telemetry-pipeline/apigateway/internal/store"
 )
 
 // Handler serves the telemetry REST API backed by a store.Reader.

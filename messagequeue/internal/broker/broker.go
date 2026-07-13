@@ -16,9 +16,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/group"
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/partition"
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/wire"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/group"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/partition"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/wire"
 )
 
 // Config configures a Broker.

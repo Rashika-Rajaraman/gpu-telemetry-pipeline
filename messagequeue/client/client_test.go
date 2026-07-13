@@ -12,8 +12,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/broker"
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/wire"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/broker"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/wire"
 )
 
 // startBroker runs an in-process broker on a random port for tests.

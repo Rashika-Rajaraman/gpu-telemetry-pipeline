@@ -13,10 +13,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/config"
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/pipeline"
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/writer"
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/collector/internal/config"
+	"github.com/gpu-telemetry-pipeline/collector/internal/pipeline"
+	"github.com/gpu-telemetry-pipeline/collector/internal/writer"
+	"github.com/gpu-telemetry-pipeline/messagequeue/client"
 )
 
 // defaultRetryBackoff is the wait between dependency connection attempts.

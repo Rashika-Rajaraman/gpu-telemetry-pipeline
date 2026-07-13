@@ -11,7 +11,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/wire"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/wire"
 )
 
 func TestPartitionForDeterministicAndCovers(t *testing.T) {

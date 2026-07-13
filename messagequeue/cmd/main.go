@@ -11,8 +11,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/broker"
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/config"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/broker"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/config"
 )
 
 func main() {

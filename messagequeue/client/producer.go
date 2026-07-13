@@ -11,7 +11,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/wire"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/wire"
 )
 
 // Producer publishes messages to the broker. It is safe for concurrent use;

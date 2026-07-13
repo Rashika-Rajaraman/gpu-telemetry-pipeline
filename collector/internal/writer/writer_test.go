@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/parser"
+	"github.com/gpu-telemetry-pipeline/collector/internal/parser"
 )
 
 func sample(uuid, metric string, sec int, v float64) parser.Sample {

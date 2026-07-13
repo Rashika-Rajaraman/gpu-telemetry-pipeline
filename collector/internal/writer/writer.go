@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/parser"
+	"github.com/gpu-telemetry-pipeline/collector/internal/parser"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )

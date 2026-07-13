@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/parser"
+	"github.com/gpu-telemetry-pipeline/collector/internal/parser"
 )
 
 func TestPostgresInsertIntegration(t *testing.T) {

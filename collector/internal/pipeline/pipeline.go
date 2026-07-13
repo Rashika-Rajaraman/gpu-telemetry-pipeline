@@ -9,9 +9,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/parser"
-	"github.com/cisco-interview/telemetry-pipeline/collector/internal/writer"
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/collector/internal/parser"
+	"github.com/gpu-telemetry-pipeline/collector/internal/writer"
+	"github.com/gpu-telemetry-pipeline/messagequeue/client"
 )
 
 // Consumer is the subset of the message-queue client the pipeline needs. It is

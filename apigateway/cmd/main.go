@@ -18,10 +18,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/apigateway/internal/api"
-	"github.com/cisco-interview/telemetry-pipeline/apigateway/internal/config"
-	"github.com/cisco-interview/telemetry-pipeline/apigateway/internal/openapi"
-	"github.com/cisco-interview/telemetry-pipeline/apigateway/internal/store"
+	"github.com/gpu-telemetry-pipeline/apigateway/internal/api"
+	"github.com/gpu-telemetry-pipeline/apigateway/internal/config"
+	"github.com/gpu-telemetry-pipeline/apigateway/internal/openapi"
+	"github.com/gpu-telemetry-pipeline/apigateway/internal/store"
 )
 
 // defaultDBBackoff is the wait between database connection attempts.

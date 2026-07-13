@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cisco-interview/telemetry-pipeline/apigateway/internal/store"
+	"github.com/gpu-telemetry-pipeline/apigateway/internal/store"
 )
 
 func ts(sec int) time.Time { return time.Date(2025, 7, 18, 20, 42, sec, 0, time.UTC) }

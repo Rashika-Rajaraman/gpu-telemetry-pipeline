@@ -16,10 +16,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/client"
-	"github.com/cisco-interview/telemetry-pipeline/streamer/internal/config"
-	"github.com/cisco-interview/telemetry-pipeline/streamer/internal/publisher"
-	"github.com/cisco-interview/telemetry-pipeline/streamer/internal/source"
+	"github.com/gpu-telemetry-pipeline/messagequeue/client"
+	"github.com/gpu-telemetry-pipeline/streamer/internal/config"
+	"github.com/gpu-telemetry-pipeline/streamer/internal/publisher"
+	"github.com/gpu-telemetry-pipeline/streamer/internal/source"
 )
 
 const defaultDialBackoff = 2 * time.Second

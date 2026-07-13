@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cisco-interview/telemetry-pipeline/messagequeue/internal/wire"
+	"github.com/gpu-telemetry-pipeline/messagequeue/internal/wire"
 )
 
 // Record is a message delivered to a consumer.
