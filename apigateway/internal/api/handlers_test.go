@@ -185,3 +185,26 @@ func TestTelemetryFailOpenOnExistenceError(t *testing.T) {
 		t.Fatalf("status = %d, want 200 (fail open)", rec.Code)
 	}
 }
+
+func TestOpenAPISpecEndpoint(t *testing.T) {
+	rec := do(t, newServer(), "/openapi.yaml")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/yaml" {
+		t.Fatalf("content-type = %q, want application/yaml", ct)
+	}
+	if !strings.Contains(rec.Body.String(), "openapi:") {
+		t.Fatalf("body is not an OpenAPI document:\n%s", rec.Body.String())
+	}
+}
+
+func TestSwaggerUIEndpoint(t *testing.T) {
+	rec := do(t, newServer(), "/docs")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "swagger-ui") {
+		t.Fatalf("body is not the Swagger UI page:\n%s", rec.Body.String())
+	}
+}

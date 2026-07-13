@@ -390,6 +390,10 @@ GET /api/v1/gpus/{id}/telemetry
 GET /api/v1/gpus/{id}/telemetry?start_time=&end_time=&metric=
 ```
 
+The gateway also serves the generated spec at `GET /openapi.yaml` and an interactive
+**Swagger UI at `GET /docs`**, so the API can be explored and exercised from a browser
+without any external tooling.
+
 `GET /api/v1/gpus` lists every GPU for which telemetry exists. `GET
 /api/v1/gpus/{id}/telemetry` returns the samples for one GPU (identified by `uuid`) in
 chronological order, optionally bounded by `start_time` and `end_time` and filtered to

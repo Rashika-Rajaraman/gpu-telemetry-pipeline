@@ -83,7 +83,9 @@ with the schema applied on first start; the four Go components are loaded via
 
 ## Use the API
 
-The API is exposed at `localhost:8080` via the kind NodePort mapping. Full schema:
+The API is exposed at `localhost:8080` via the kind NodePort mapping. Explore and call
+it interactively in **Swagger UI at [http://localhost:8080/docs](http://localhost:8080/docs)** —
+the spec is served live at `/openapi.yaml` and also checked in at
 [api/openapi.yaml](api/openapi.yaml).
 
 | Method | Path | Description |

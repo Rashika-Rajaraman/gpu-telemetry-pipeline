@@ -6,6 +6,8 @@
 //	    optional query: start_time, end_time (RFC3339, inclusive), metric
 //	GET /healthz, /readyz                  - probes
 //	GET /metrics                           - Prometheus text metrics
+//	GET /docs                              - interactive Swagger UI
+//	GET /openapi.yaml                      - auto-generated OpenAPI spec
 package api
 
 import (
@@ -41,6 +43,8 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /healthz", h.ok)
 	mux.HandleFunc("GET /readyz", h.ok)
 	mux.HandleFunc("GET /metrics", h.metrics.handler)
+	mux.HandleFunc("GET /docs", h.swaggerUI)
+	mux.HandleFunc("GET /openapi.yaml", h.openAPISpec)
 	return h.metrics.middleware(mux)
 }
 
