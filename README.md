@@ -81,6 +81,18 @@ PostgreSQL uses the stock `postgres:16-alpine` image (pulled by kind on demand)
 with the schema applied on first start; the four Go components are loaded via
 `kind load`, so no external registry is required.
 
+## Control the telemetry flow
+
+The streamer is the only producer, so you can start and stop telemetry on demand:
+
+```bash
+make stream-stop     # pause: scale the streamer to 0 (row count stops growing)
+make stream-start    # resume: scale the streamer back up (STREAM_REPLICAS, default 2)
+```
+
+While paused, the queue drains and collectors go idle; resuming continues from where
+it left off.
+
 ## Use the API
 
 The API is exposed at `localhost:8080` via the kind NodePort mapping. Explore and call

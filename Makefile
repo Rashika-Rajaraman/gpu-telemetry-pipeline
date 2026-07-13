@@ -5,6 +5,7 @@ COMPONENTS := streamer messagequeue collector apigateway
 MODULE     := github.com/gpu-telemetry-pipeline
 REGISTRY   ?= localhost:5001
 TAG        ?= dev
+STREAM_REPLICAS ?= 2
 
 .DEFAULT_GOAL := help
 
@@ -99,6 +100,16 @@ smoke: ## Quick end-to-end check against the deployed API
 	@echo ">> GET /api/v1/gpus"
 	curl -fsS localhost:8080/api/v1/gpus | head -c 400 ; echo
 	@echo ">> GET /healthz" ; curl -fsS localhost:8080/healthz ; echo
+
+.PHONY: stream-stop
+stream-stop: ## Pause telemetry: scale the streamer to 0 (no new data produced)
+	kubectl scale statefulset streamer --replicas=0
+	@echo ">> telemetry paused; the queue drains and the row count stops growing"
+
+.PHONY: stream-start
+stream-start: ## Resume telemetry: scale the streamer back up (STREAM_REPLICAS, default 2)
+	kubectl scale statefulset streamer --replicas=$(STREAM_REPLICAS)
+	@echo ">> telemetry resumed with $(STREAM_REPLICAS) streamer(s)"
 
 .PHONY: teardown
 teardown: ## Delete the kind cluster
