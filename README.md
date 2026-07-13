@@ -112,12 +112,25 @@ curl "localhost:8080/api/v1/gpus/GPU-5fd4f087-86f3-7a43-b711-4771313afc50/teleme
 curl "localhost:8080/api/v1/gpus/GPU-5fd4.../telemetry?start_time=2025-07-18T20:42:00Z&end_time=2025-07-18T20:43:00Z&metric=DCGM_FI_DEV_GPU_UTIL"
 ```
 
-Scale streamers and collectors elastically:
+Scale the tiers elastically. **Collectors** rebalance instantly under `kubectl scale`
+(the broker reassigns partitions at runtime):
 
 ```bash
-kubectl scale statefulset streamer --replicas=4
 kubectl scale deployment collector --replicas=5
 ```
+
+**Streamers** must be scaled through Helm, not `kubectl scale`. A streamer's share of
+the CSV depends on the `REPLICAS` value baked into its pods; `kubectl scale` adds a pod
+without updating that value, so the new pod owns no rows and publishes nothing. Use
+Helm so the count is re-rendered and the pods re-shard:
+
+```bash
+helm upgrade --install streamer deployment/helm/streamer \
+  --set image.repository=localhost:5001/streamer --set image.tag=dev \
+  --set replicaCount=4
+```
+
+See the "known boundary" note in [docs/DESIGN.md](docs/DESIGN.md) (Section 4.1) for why.
 
 ## AI usage
 

@@ -115,18 +115,14 @@ different streamer. This is harmless here — the CSV is replayed indefinitely a
 sample's timestamp is assigned at ingestion rather than read from the CSV, so every
 pass is simply fresh telemetry rather than duplicated history.
 
-**Known boundary — scale streamers via Helm, not `kubectl scale`.** A streamer derives
-its shard from two values: its ordinal (from the pod name) and the total replica count
-(`REPLICAS`, rendered from `replicaCount` at install time). `kubectl scale` changes only
-the number of pods, not the `REPLICAS` value already baked into the running pods, so a
-pod added that way inherits a stale count and owns no shard — `idx % REPLICAS == ordinal`
-never matches for the new ordinal, and the pod runs but publishes nothing. Streamers must
-therefore be scaled through Helm (`--set replicaCount=N`), which re-renders `REPLICAS` and
-restarts the pods to re-shard cleanly. Collectors have no such limitation: the broker
-assigns their work at runtime, so `kubectl scale` rebalances them immediately (Section
-5.2). Making the streamer discover its replica count at runtime — via the Kubernetes API
-or peer DNS — would remove this boundary, at the cost of coordination the producer does
-not otherwise need; it is left as a future improvement (Section 11).
+**Known boundary — scale streamers via Helm, not `kubectl scale`.** A streamer's shard
+depends on `REPLICAS`, an env value fixed at install time. `kubectl scale` adds pods
+without updating it, so a new pod inherits a stale count and owns no rows
+(`idx % REPLICAS == ordinal` never matches its ordinal) — it runs but publishes nothing.
+Scale streamers with Helm (`--set replicaCount=N`), which updates `REPLICAS` and
+restarts the pods to re-shard. Collectors have no such limit: the broker assigns their
+work at runtime, so `kubectl scale` rebalances them immediately. Letting the streamer
+read its replica count at runtime would remove this boundary (Section 11).
 
 ## 5. Message Queue
 
