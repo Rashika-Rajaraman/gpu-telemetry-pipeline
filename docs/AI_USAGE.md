@@ -227,6 +227,13 @@ Some of the prompts that most influenced the final result are listed below.
 - **"Add Swagger support so the API can be explored interactively."**
 - **"If a reviewer blindly follows the README, will the project actually run?"**
 
+### Engineering Standards and Project Structure
+
+- **"Use logrus instead of slog so log level and format are configurable through the Kubernetes ConfigMap."**
+- **"Use a single Go module rather than multiple modules."**
+- **"Keep one generic root Makefile rather than per-component Makefiles."**
+- **"Put configuration and the logger in an internal/config package, keep cmd/main.go thin, and don't unit-test main."**
+
 ### Validation and Review
 
 - **"Give me a step-by-step system validation process."**
