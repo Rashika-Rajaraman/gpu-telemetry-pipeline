@@ -66,17 +66,59 @@ Being candid about the limits:
   human direction ("keep it simple", "is this too wordy?") was needed to land a clean,
   minimal result.
 
+## Notable prompts that shaped the work
+
+A selection of the human prompts that most influenced the result (not an exhaustive
+list) — the ones where a requirement or a sharp question materially improved the system:
+
+- **"Build an elastic, scalable, stable telemetry pipeline for an AI cluster with a
+  *custom* message queue — no Kafka/RabbitMQ/ZeroMQ."** The core brief. Framing the
+  queue as from-scratch is what made the wire protocol, partitions, consumer groups, and
+  at-least-once delivery the heart of the project rather than a library call.
+
+- **"Cover ~90% of test cases, keep the code simple and readable — small functions,
+  optimal approach, logs at relevant places and comments — and use logrus so logging is
+  configurable via the ConfigMap."** This single directive set conventions applied
+  uniformly across all five components: logrus + an `internal/config` package
+  (`LOG_LEVEL` / `LOG_FORMAT`), ~90% coverage on the logic packages, and a deliberately
+  small, readable style.
+
+- **"There should be a way to trigger and stop the telemetry flow, controlled by us."**
+  Led to the `make stream-start` / `stream-stop` controls (scaling the producer), which
+  made demos and testing far cleaner.
+
+- **"Provide support to access the API using Swagger and get the data."** Led to serving
+  Swagger UI at `/docs` and the live spec at `/openapi.yaml`, so the API is explorable
+  from a browser with zero tooling.
+
+- **"If a reviewer blindly follows the README, will they be able to run this?"**
+  Triggered a runnability audit that fixed the prerequisites (make + bash + Docker daemon)
+  and the deploy re-run note — turning "should work" into "does work".
+
+- **"When I scale the streamer, why doesn't the new pod do anything?"** Exposed a genuine
+  design boundary: `kubectl scale` leaves a new streamer idle because `REPLICAS` is
+  static. This became a documented known boundary (scale streamers via Helm) plus a
+  future-improvement (runtime replica discovery) — a case where a sharp question improved
+  the design's honesty.
+
+- **"Is the rebalance actually happening — how do I verify it?"** Pushed for observable
+  proof, surfacing the broker's debug-level "partition assignment changed" log as the way
+  to *see* partitions redistribute (8/8 -> 6/5/5 -> 16) rather than just trust it.
+
+- **"Is this too wordy? Keep it simple."** Repeated throughout, this steady pressure kept
+  both the code and the documentation concise instead of bloated.
+
 ## Verification (human-owned)
 
 All correctness claims were checked by the human, not taken on faith:
 
 - Full `go build ./...`, `go vet ./...`, and `go test ./...` run locally.
-- **Live end-to-end validation on a real `kind` cluster** (Docker Desktop + WSL2):
-  deploying all five components, confirming ingestion into PostgreSQL, exercising the
-  API and Swagger UI, and testing the hard cases — consumer-group rebalancing across
-  scale events, collector failover / at-least-once redelivery, producer flow control,
-  and broker-restart recovery. See [VALIDATION.md](VALIDATION.md) for the full runbook
-  and observed results.
+- **Live end-to-end validation on a real `kind` cluster** (an Ubuntu server with all
+  dependencies installed): deploying all five components, confirming ingestion into
+  PostgreSQL, exercising the API and Swagger UI, and testing the hard cases —
+  consumer-group rebalancing across scale events, collector failover / at-least-once
+  redelivery, producer flow control, and broker-restart recovery. See
+  [VALIDATION.md](VALIDATION.md) for the full runbook and observed results.
 
 ## Honest assessment
 

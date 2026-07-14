@@ -165,7 +165,8 @@ make teardown        # delete the kind cluster
 
 ## Observed results (live run)
 
-A full live run was executed on Docker Desktop + WSL2. Highlights:
+A full live run was executed on an Ubuntu server with all dependencies (Docker, kind,
+kubectl, Helm) installed. Highlights:
 
 - **Ingestion:** row count climbed continuously (e.g. 12,849 → 15,725 over a few
   minutes), distinct GPU count stable — confirming end-to-end flow into PostgreSQL.
