@@ -66,47 +66,37 @@ Being candid about the limits:
   human direction ("keep it simple", "is this too wordy?") was needed to land a clean,
   minimal result.
 
-## Notable prompts that shaped the work
+## Prompts that shaped the work
 
-A selection of the human prompts that most influenced the result (not an exhaustive
-list) — the ones where a requirement or a sharp question materially improved the system:
+The project started with an **iterative design phase**, not code. Several architecture
+options were explored and pressure-tested through questions — how to build a custom queue
+without reinventing Kafka, how to guarantee ordering and reliability, which database fits
+the workload, and what could fail — until the design **converged on one approach**. Only
+then did implementation begin, which kept the build focused and avoided rework.
 
-- **"Build an elastic, scalable, stable telemetry pipeline for an AI cluster with a
-  *custom* message queue — no Kafka/RabbitMQ/ZeroMQ."** The core brief. Framing the
-  queue as from-scratch is what made the wire protocol, partitions, consumer groups, and
-  at-least-once delivery the heart of the project rather than a library call.
+A collective selection of the prompts that most shaped the result:
 
-- **"Cover ~90% of test cases, keep the code simple and readable — small functions,
-  optimal approach, logs at relevant places and comments — and use logrus so logging is
-  configurable via the ConfigMap."** This single directive set conventions applied
-  uniformly across all five components: logrus + an `internal/config` package
-  (`LOG_LEVEL` / `LOG_FORMAT`), ~90% coverage on the logic packages, and a deliberately
-  small, readable style.
-
-- **"There should be a way to trigger and stop the telemetry flow, controlled by us."**
-  Led to the `make stream-start` / `stream-stop` controls (scaling the producer), which
-  made demos and testing far cleaner.
-
-- **"Provide support to access the API using Swagger and get the data."** Led to serving
-  Swagger UI at `/docs` and the live spec at `/openapi.yaml`, so the API is explorable
-  from a browser with zero tooling.
-
-- **"If a reviewer blindly follows the README, will they be able to run this?"**
-  Triggered a runnability audit that fixed the prerequisites (make + bash + Docker daemon)
-  and the deploy re-run note — turning "should work" into "does work".
-
-- **"When I scale the streamer, why doesn't the new pod do anything?"** Exposed a genuine
-  design boundary: `kubectl scale` leaves a new streamer idle because `REPLICAS` is
-  static. This became a documented known boundary (scale streamers via Helm) plus a
-  future-improvement (runtime replica discovery) — a case where a sharp question improved
-  the design's honesty.
-
-- **"Is the rebalance actually happening — how do I verify it?"** Pushed for observable
-  proof, surfacing the broker's debug-level "partition assignment changed" log as the way
-  to *see* partitions redistribute (8/8 -> 6/5/5 -> 16) rather than just trust it.
-
-- **"Is this too wordy? Keep it simple."** Repeated throughout, this steady pressure kept
-  both the code and the documentation concise instead of bloated.
+- **"Design a custom message queue that scales, preserves ordering, and is reliable —
+  without becoming another Kafka."** Set the queue's scope: partitions for parallelism,
+  per-GPU ordering, at-least-once delivery — deliberately minimal (in-memory, fixed
+  partitions).
+- **"How do we avoid duplicate telemetry with at-least-once delivery?"** Led to idempotent
+  writes via the unique `(uuid, metric, ts)` constraint plus persist-then-ack ordering.
+- **"PostgreSQL, TimescaleDB, Cassandra, InfluxDB, or MongoDB?"** Drove the database
+  comparison and the PostgreSQL choice, with TimescaleDB as an upgrade path.
+- **"What failure scenarios must be tested before it's complete?"** Shaped the validation
+  plan — rebalancing, failover / at-least-once, backpressure, broker restart.
+- **"Cover ~90% of tests, keep it simple and readable, and use logrus so logging is
+  ConfigMap-configurable."** Set the coding conventions applied across all five components.
+- **"Give me a way to start and stop the telemetry flow."** → `make stream-start` /
+  `stream-stop`.
+- **"Add Swagger so the API is explorable."** → Swagger UI at `/docs` + live `/openapi.yaml`.
+- **"If a reviewer blindly follows the README, will it run?"** → a runnability audit of the
+  prerequisites and deploy steps.
+- **"Why doesn't a new streamer do work when I scale it?"** Surfaced (and led to
+  documenting) the streamer scaling boundary and a future improvement.
+- **"How do I verify the rebalance is happening?"** and **"Is this too wordy? Keep it
+  simple."** Pushed for observable proof and concision throughout.
 
 ## Verification (human-owned)
 
