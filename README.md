@@ -132,8 +132,14 @@ helm upgrade --install streamer deployment/helm/streamer \
 
 See the "known boundary" note in [docs/DESIGN.md](docs/DESIGN.md) (Section 4.1) for why.
 
+## Validation
+
+A repeatable end-to-end validation runbook — health, data flow, API, consumer-group
+rebalancing, failover/at-least-once, flow control, and broker-restart recovery — plus
+the results observed on a live `kind` cluster, is in [docs/VALIDATION.md](docs/VALIDATION.md).
+
 ## AI usage
 
-This project was built with heavy AI assistance (GitHub Copilot). The full
-prompt-by-prompt account — what was AI-generated, what needed manual fixes, and
-where prompts fell short — is in [docs/AI_USAGE.md](docs/AI_USAGE.md).
+This project was built with heavy AI assistance (GitHub Copilot). An honest account —
+what AI produced, what needed manual fixes, and where it fell short — is in
+[docs/AI_USAGE.md](docs/AI_USAGE.md).
