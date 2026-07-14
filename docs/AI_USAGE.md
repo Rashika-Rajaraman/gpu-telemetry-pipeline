@@ -1,119 +1,321 @@
 # AI Usage
 
-This project was built with heavy use of an AI coding assistant (GitHub Copilot,
-Claude). This document is an honest account of **how** AI was used, **what it produced
-well**, and **where it fell short and needed human direction** — so a reviewer can see
-the real division of labor rather than a marketing summary.
+This project was built with extensive use of AI coding assistant (GitHub Copilot, Claude). This document provides an honest account of how AI was used, where it accelerated development, where it fell short, and where human judgment and intervention were required.
+
+The goal is not to claim more or less AI usage than actually occurred, but to clearly communicate the division of labor between the AI tools and the engineer responsible for the system.
+
+---
 
 ## Summary
 
-AI was used as a pair-programming partner across the whole lifecycle: designing the
-architecture, writing every component and its tests, generating the Kubernetes/Helm
-assets, and producing the documentation. The human drove the requirements, made the
-key architectural decisions, questioned the AI's output, caught its mistakes, and
-performed all live validation on a real `kind` cluster.
+AI was used as a pair-programming partner throughout the entire lifecycle of the project:
 
-A useful way to frame it: **AI produced most of the code and prose; the human owned
-the decisions, the correctness checks, and the judgment.**
+- Architecture and design discussions
+- Component implementation
+- Unit test generation
+- Kubernetes and Helm assets
+- Documentation and README creation
+- Validation planning and review
 
-## Where AI was used
+The human owned:
 
-- **Design.** Drafting `docs/DESIGN.md` — the architecture, the custom message-queue
-  internals (partitioning, consumer groups, delivery semantics, backpressure), the
-  database choice comparison, and the tradeoffs table. AI produced strong first drafts;
-  the human reshaped structure, trimmed wordiness, and corrected claims to match the
-  implementation.
-- **Implementation.** All five components — streamer, message queue (custom TCP
-  broker), collector, API gateway, and the database assets — were written with AI,
-  including the length-prefixed wire protocol, partition/consumer-group logic,
-  at-least-once delivery with committed offsets, backpressure, the pgx persistence
-  layer, and the REST + auto-generated OpenAPI surface.
-- **Tests.** Table-driven unit tests co-located with each package, reaching ~90%+
-  coverage on the logic packages (e.g. group 100%, partition 95%, wire 93%, parser 94%,
-  pipeline 91%, api ~94%). AI wrote the bulk; the human set the coverage targets and the
-  "don't test `main`, cover `internal/*`" convention.
-- **Ops assets.** Dockerfiles (multi-stage, distroless), five Helm charts, the kind
-  config, the Makefile targets (`build`/`test`/`cover`/`deploy`/`smoke`/`teardown`/
-  `stream-start`/`stream-stop`), and the OpenAPI generation.
-- **Documentation.** README, DESIGN, this file, and the Swagger UI integration.
-- **Explanation.** A large share of the collaboration was the AI explaining its own
-  design — sharding math, StatefulSet vs Deployment, offset semantics — which doubled
-  as a review mechanism (explaining forces the reasoning to be checked).
+- Requirements and scope
+- Architectural decisions
+- Tradeoff analysis
+- Correctness verification
+- Failure testing
+- Final validation on a live Kubernetes cluster
 
-## Where AI fell short (and the human had to intervene)
+A useful way to frame the collaboration is:
 
-Being candid about the limits:
+> AI produced a substantial proportion of the initial code, tests, and documentation drafts; the human owned the requirements, architectural decisions, correctness checks, and final validation.
 
-- **Architectural decisions were human-owned.** The AI would implement whatever was
-  asked; it did not independently insist on the choices that mattered. The human decided:
-  a single Go module (not multi-module), one root Makefile (not per-component), the
-  **long-format** data model (store generic samples, key on `uuid`), and keeping the
-  custom queue a genuine from-scratch TCP broker rather than leaning on a framework.
-- **Correctness bugs.** AI introduced a SQL type typo (`BIGGABLE` → `BIGINT`) and left
-  an unused test helper that failed the build; both were caught and fixed by the human.
-- **A flaky test.** The consumer-group load-sharing test was timing-dependent and failed
-  intermittently; the fix (subscribe both consumers and let the rebalance settle before
-  publishing) came from human diagnosis, then stress-testing to confirm.
-- **Environment/version friction.** Aligning the Go toolchain with the `golang:1.25`
-  Docker base and `go.mod`, and working around Go not being on `PATH`, needed human
-  steering.
-- **A real design boundary surfaced only under questioning.** During validation the
-  human asked "if I scale the streamer, does the new pod do work?" — which exposed that
-  `kubectl scale` alone leaves a new streamer idle (its `REPLICAS` env is static), so
-  streamers must be scaled via Helm. The AI had not flagged this proactively; it was
-  found by the human probing behavior, then documented as a known boundary.
-- **Over-verbosity.** AI drafts trended wordy and occasionally over-engineered; repeated
-  human direction ("keep it simple", "is this too wordy?") was needed to land a clean,
-  minimal result.
+---
 
-## Prompts that shaped the work
+## Where AI Was Used
 
-The project started with an **iterative design phase**, not code. Several architecture
-options were explored and pressure-tested through questions — how to build a custom queue
-without reinventing Kafka, how to guarantee ordering and reliability, which database fits
-the workload, and what could fail — until the design **converged on one approach**. Only
-then did implementation begin, which kept the build focused and avoided rework.
+### Design
 
-A collective selection of the prompts that most shaped the result:
+AI was used heavily during the architecture phase to explore and compare design alternatives before implementation began.
 
-- **"Design a custom message queue that scales, preserves ordering, and is reliable —
-  without becoming another Kafka."** Set the queue's scope: partitions for parallelism,
-  per-GPU ordering, at-least-once delivery — deliberately minimal (in-memory, fixed
-  partitions).
-- **"How do we avoid duplicate telemetry with at-least-once delivery?"** Led to idempotent
-  writes via the unique `(uuid, metric, ts)` constraint plus persist-then-ack ordering.
-- **"PostgreSQL, TimescaleDB, Cassandra, InfluxDB, or MongoDB?"** Drove the database
-  comparison and the PostgreSQL choice, with TimescaleDB as an upgrade path.
-- **"What failure scenarios must be tested before it's complete?"** Shaped the validation
-  plan — rebalancing, failover / at-least-once, backpressure, broker restart.
-- **"Cover ~90% of tests, keep it simple and readable, and use logrus so logging is
-  ConfigMap-configurable."** Set the coding conventions applied across all five components.
-- **"Give me a way to start and stop the telemetry flow."** → `make stream-start` /
-  `stream-stop`.
-- **"Add Swagger so the API is explorable."** → Swagger UI at `/docs` + live `/openapi.yaml`.
-- **"If a reviewer blindly follows the README, will it run?"** → a runnability audit of the
-  prerequisites and deploy steps.
-- **"Why doesn't a new streamer do work when I scale it?"** Surfaced (and led to
-  documenting) the streamer scaling boundary and a future improvement.
-- **"How do I verify the rebalance is happening?"** and **"Is this too wordy? Keep it
-  simple."** Pushed for observable proof and concision throughout.
+Examples include:
 
-## Verification (human-owned)
+- Message queue architecture
+- Partitioning strategies
+- Delivery guarantees
+- Database selection
+- Consumer group design
+- Failure handling
+- Backpressure mechanisms
+- Kubernetes deployment models
 
-All correctness claims were checked by the human, not taken on faith:
+AI produced strong initial drafts of the design documentation and architectural alternatives, while the human refined structure, simplified unnecessary complexity, and ensured the design matched the actual implementation.
 
-- Full `go build ./...`, `go vet ./...`, and `go test ./...` run locally.
-- **Live end-to-end validation on a real `kind` cluster** (an Ubuntu server with all
-  dependencies installed): deploying all five components, confirming ingestion into
-  PostgreSQL, exercising the API and Swagger UI, and testing the hard cases —
-  consumer-group rebalancing across scale events, collector failover / at-least-once
-  redelivery, producer flow control, and broker-restart recovery. See
-  [VALIDATION.md](VALIDATION.md) for the full runbook and observed results.
+---
 
-## Honest assessment
+### Implementation
 
-AI dramatically accelerated the work — scaffolding, boilerplate, tests, and prose that
-would otherwise take much longer. But it was an accelerator, not an autopilot: it needed
-a human to set the requirements, make the design calls, catch its bugs, question its
-assumptions, insist on simplicity, and prove the system actually works on a real
-cluster. The final result reflects that partnership.
+AI assisted in implementing all five major components:
+
+- Telemetry Streamer
+- Custom Message Queue Broker
+- Telemetry Collector
+- API Gateway
+- Database assets and migrations
+
+Examples of AI-generated implementation work include:
+
+- Length-prefixed TCP wire protocol
+- Partition and consumer group logic
+- Offset tracking and acknowledgement flow
+- Backpressure handling
+- PostgreSQL persistence layer using pgx
+- REST API handlers
+- OpenAPI generation
+
+---
+
+### Testing
+
+AI generated the majority of the table-driven unit tests across the project.
+
+Coverage focused primarily on business logic packages rather than entrypoints or boilerplate code.
+
+Examples include:
+
+- Consumer group logic
+- Partition ownership
+- Wire protocol serialization
+- CSV parsing
+- Pipeline orchestration
+- API handlers
+
+The human defined:
+
+- Coverage targets (~90% for logic packages)
+- Package boundaries
+- Testing conventions
+- Integration test strategy
+
+---
+
+### Operations and Deployment
+
+AI assisted with:
+
+- Multi-stage Dockerfiles
+- Distroless container images
+- Helm charts
+- Kind cluster configuration
+- Makefile targets
+- OpenAPI generation
+- Swagger UI integration
+
+---
+
+### Documentation
+
+AI contributed significantly to:
+
+- README
+- DESIGN document
+- AI usage documentation
+- Validation runbooks
+- Swagger integration
+
+---
+
+### Explanation and Review
+
+A significant portion of the collaboration involved AI explaining its own output.
+
+Examples include:
+
+- Partitioning math
+- Consumer group semantics
+- Offset handling
+- StatefulSet versus Deployment
+- Delivery guarantees
+
+This acted as a review mechanism because explaining a design often exposes weaknesses or incorrect assumptions.
+
+---
+
+## Where AI Fell Short
+
+### Architectural Decisions Were Human-Owned
+
+AI implemented the designs it was asked to build but did not independently drive the architectural decisions that shaped the project.
+
+Examples of human-owned decisions include:
+
+- Single Go module rather than multiple modules
+- Single root Makefile rather than component-level Makefiles
+- Long-format telemetry storage model
+- Using GPU UUID as the primary key
+- Building a genuine custom TCP broker rather than wrapping an existing framework
+
+---
+
+### Correctness Bugs
+
+AI introduced several defects that required human intervention:
+
+- SQL type typo (`BIGGABLE` instead of `BIGINT`)
+- Unused test helper causing build failures
+- Minor API inconsistencies
+
+These were identified through build validation and manual review.
+
+---
+
+### Flaky Tests
+
+A consumer-group load-sharing test failed intermittently because it relied on timing assumptions.
+
+The issue was diagnosed manually and resolved by:
+
+- Ensuring both consumers subscribed before publishing
+- Allowing rebalance completion before assertions
+- Stress testing the scenario repeatedly
+
+---
+
+### Environment and Toolchain Issues
+
+Several problems required manual intervention:
+
+- Go toolchain alignment with `golang:1.25`
+- Docker image compatibility
+- PATH configuration issues
+- Local Kubernetes environment setup
+
+---
+
+### Design Boundaries Discovered During Validation
+
+Live validation surfaced behaviors that AI had not proactively identified.
+
+One example involved streamer scaling:
+
+- Scaling via `kubectl scale` created new streamer pods.
+- New pods remained idle because the `REPLICAS` environment variable was static.
+- Correct scaling therefore required Helm upgrades rather than direct Kubernetes scaling.
+
+This limitation was documented and added to future work.
+
+---
+
+### Over-Engineering and Verbosity
+
+AI drafts frequently trended toward:
+
+- Overly verbose documentation
+- Excessive abstractions
+- Unnecessary complexity
+
+Repeated human guidance such as:
+
+- "Keep it simple."
+- "Is this too wordy?"
+- "Do we actually need this?"
+
+was required to keep the project appropriately scoped.
+
+---
+
+## Prompts That Materially Shaped The Project
+
+The project began with an iterative design phase rather than implementation.
+
+Several architectural alternatives were explored and challenged before code was written.
+
+Some of the prompts that most influenced the final result are listed below.
+
+### Core Architecture
+
+- **"Build an elastic, scalable telemetry pipeline around a custom message queue — no Kafka, RabbitMQ, or ZeroMQ."**
+- **"Design the queue to scale, preserve ordering, and stay reliable without reinventing Kafka."**
+- **"How do we avoid duplicate telemetry under at-least-once delivery?"**
+- **"PostgreSQL, TimescaleDB, Cassandra, InfluxDB, or MongoDB?"**
+- **"Store DCGM as long-format generic samples keyed by UUID rather than host-local GPU identifiers."**
+
+---
+
+### Reliability and Failure Handling
+
+- **"What failure scenarios must be tested before this implementation is complete?"**
+- **"How do I verify that rebalancing is actually happening?"**
+- **"Does the database grow unbounded, and what happens when it does?"**
+- **"Document broker failure semantics and delivery guarantees explicitly."**
+
+---
+
+### Developer Experience and Operations
+
+- **"Cover approximately 90% of the logic with tests while keeping the code simple and readable."**
+- **"Refine every component to follow the same conventions."**
+- **"Provide a way to start and stop telemetry generation during demonstrations."**
+- **"Add Swagger support so the API can be explored interactively."**
+- **"If a reviewer blindly follows the README, will the project actually run?"**
+
+---
+
+### Validation and Review
+
+- **"Give me a step-by-step system validation process."**
+- **"What aspects of this design do I need to understand deeply?"**
+- **"Is the message queue design actually good?"**
+- **"Does this resemble an existing message queue implementation?"**
+- **"How do I know if the queue buffer actually contains data?"**
+- **"What changes would make this design stronger?"**
+
+These discussions transformed AI from a code generator into an architectural reviewer and adversarial reviewer that challenged assumptions and improved the final design.
+
+---
+
+## Verification (Human-Owned)
+
+All correctness claims were validated by the human rather than accepted from AI output.
+
+Validation activities included:
+
+- `go build ./...`
+- `go vet ./...`
+- `go test ./...`
+
+Additionally, the entire system was validated end-to-end on a live Kubernetes cluster using Kind.
+
+Validation scenarios included:
+
+- Telemetry ingestion
+- PostgreSQL persistence
+- API functionality
+- Swagger integration
+- Consumer group rebalancing
+- Collector failover
+- At-least-once redelivery
+- Backpressure behavior
+- Broker restart recovery
+
+Detailed validation steps and observations are documented in `VALIDATION.md`.
+
+---
+
+## Honest Assessment
+
+AI dramatically accelerated implementation by generating boilerplate code, tests, documentation, and deployment assets that would otherwise have taken considerably longer to produce.
+
+However, it functioned as an accelerator rather than an autopilot.
+
+The human remained responsible for:
+
+- Setting requirements
+- Making architectural decisions
+- Identifying incorrect assumptions
+- Catching implementation defects
+- Controlling complexity
+- Verifying correctness
+- Demonstrating the system under realistic failure conditions
+
+The final result reflects that partnership rather than either side working independently.
