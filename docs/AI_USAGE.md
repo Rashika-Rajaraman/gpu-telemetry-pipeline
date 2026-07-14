@@ -4,6 +4,14 @@ This project was built with extensive use of AI coding assistant (GitHub Copilot
 
 The goal is not to claim more or less AI usage than actually occurred, but to clearly communicate the division of labor between the AI tools and the engineer responsible for the system.
 
+## Approach
+
+The project was handled **design-first**: no code was written until the architecture was settled. Several alternatives for the message queue, delivery guarantees, partitioning, and storage were explored and challenged through discussion, then captured in a design document (`DESIGN.md`) that converged on a single approach. Only once the design was agreed did implementation begin.
+
+Implementation then proceeded **component by component** against a shared set of conventions (configuration, logging, small functions, tests), rather than building everything at once — each component was implemented, unit-tested, and refined before moving to the next. Finally, the whole system was assembled and **validated end-to-end on a live Kubernetes cluster**, where scaling, failover, and recovery behavior were exercised and documented.
+
+This order — design, then focused implementation, then live validation — kept the build deliberate and avoided rework.
+
 ## Summary
 
 AI was used as a pair-programming partner throughout the entire lifecycle of the project:
@@ -30,171 +38,44 @@ A useful way to frame the collaboration is:
 
 ## Where AI Was Used
 
-### Design
-
-AI was used heavily during the architecture phase to explore and compare design alternatives before implementation began.
-
-Examples include:
-
-- Message queue architecture
-- Partitioning strategies
-- Delivery guarantees
-- Database selection
-- Consumer group design
-- Failure handling
-- Backpressure mechanisms
-- Kubernetes deployment models
-
-AI produced strong initial drafts of the design documentation and architectural alternatives, while the human refined structure, simplified unnecessary complexity, and ensured the design matched the actual implementation.
-
-### Implementation
-
-AI assisted in implementing all five major components:
-
-- Telemetry Streamer
-- Custom Message Queue Broker
-- Telemetry Collector
-- API Gateway
-- Database assets and migrations
-
-Examples of AI-generated implementation work include:
-
-- Length-prefixed TCP wire protocol
-- Partition and consumer group logic
-- Offset tracking and acknowledgement flow
-- Backpressure handling
-- PostgreSQL persistence layer using pgx
-- REST API handlers
-- OpenAPI generation
-
-### Testing
-
-AI generated the majority of the table-driven unit tests across the project.
-
-Coverage focused primarily on business logic packages rather than entrypoints or boilerplate code.
-
-Examples include:
-
-- Consumer group logic
-- Partition ownership
-- Wire protocol serialization
-- CSV parsing
-- Pipeline orchestration
-- API handlers
-
-The human defined:
-
-- Coverage targets (~90% for logic packages)
-- Package boundaries
-- Testing conventions
-- Integration test strategy
-
-### Operations and Deployment
-
-AI assisted with:
-
-- Multi-stage Dockerfiles
-- Distroless container images
-- Helm charts
-- Kind cluster configuration
-- Makefile targets
-- OpenAPI generation
-- Swagger UI integration
-
-### Documentation
-
-AI contributed significantly to:
-
-- README
-- DESIGN document
-- AI usage documentation
-- Validation runbooks
-- Swagger integration
-
-### Explanation and Review
-
-A significant portion of the collaboration involved AI explaining its own output.
-
-Examples include:
-
-- Partitioning math
-- Consumer group semantics
-- Offset handling
-- StatefulSet versus Deployment
-- Delivery guarantees
-
-This acted as a review mechanism because explaining a design often exposes weaknesses or incorrect assumptions.
+- **Design.** Drafting `docs/DESIGN.md` — architecture, the custom message-queue internals
+  (partitioning, consumer groups, delivery semantics, backpressure), the database
+  comparison, and the tradeoffs table. AI produced strong first drafts; the human reshaped
+  structure and corrected claims to match the implementation.
+- **Implementation.** All five components — streamer, message queue (custom TCP broker),
+  collector, API gateway, and database assets — including the length-prefixed wire
+  protocol, partition and consumer-group logic, at-least-once delivery with committed
+  offsets, backpressure, the pgx persistence layer, and the REST + auto-generated OpenAPI
+  surface.
+- **Tests.** Table-driven unit tests co-located with each package, ~90%+ coverage on the
+  logic packages. The human set the coverage targets, package boundaries, integration-test
+  strategy, and the "don't test `main`, cover `internal/*`" convention.
+- **Operations.** Multi-stage distroless Dockerfiles, five Helm charts, the kind config,
+  the Makefile targets, OpenAPI generation, and the Swagger UI.
+- **Documentation.** README, DESIGN, this file, and the validation runbook.
+- **Explanation.** A large share of the work was AI explaining its own design — sharding
+  math, StatefulSet vs Deployment, offset semantics — which doubled as a review mechanism,
+  since explaining a design often exposes weak assumptions.
 
 ## Where AI Fell Short
 
-### Architectural Decisions Were Human-Owned
-
-AI implemented the designs it was asked to build but did not independently drive the architectural decisions that shaped the project.
-
-Examples of human-owned decisions include:
-
-- Single Go module rather than multiple modules
-- Single root Makefile rather than component-level Makefiles
-- Long-format telemetry storage model
-- Using GPU UUID as the primary key
-- Building a genuine custom TCP broker rather than wrapping an existing framework
-
-### Correctness Bugs
-
-AI introduced several defects that required human intervention:
-
-- SQL type typo (`BIGGABLE` instead of `BIGINT`)
-- Unused test helper causing build failures
-- Minor API inconsistencies
-
-These were identified through build validation and manual review.
-
-### Flaky Tests
-
-A consumer-group load-sharing test failed intermittently because it relied on timing assumptions.
-
-The issue was diagnosed manually and resolved by:
-
-- Ensuring both consumers subscribed before publishing
-- Allowing rebalance completion before assertions
-- Stress testing the scenario repeatedly
-
-### Environment and Toolchain Issues
-
-Several problems required manual intervention:
-
-- Go toolchain alignment with `golang:1.25`
-- Docker image compatibility
-- PATH configuration issues
-- Local Kubernetes environment setup
-
-### Design Boundaries Discovered During Validation
-
-Live validation surfaced behaviors that AI had not proactively identified.
-
-One example involved streamer scaling:
-
-- Scaling via `kubectl scale` created new streamer pods.
-- New pods remained idle because the `REPLICAS` environment variable was static.
-- Correct scaling therefore required Helm upgrades rather than direct Kubernetes scaling.
-
-This limitation was documented and added to future work.
-
-### Over-Engineering and Verbosity
-
-AI drafts frequently trended toward:
-
-- Overly verbose documentation
-- Excessive abstractions
-- Unnecessary complexity
-
-Repeated human guidance such as:
-
-- "Keep it simple."
-- "Is this too wordy?"
-- "Do we actually need this?"
-
-was required to keep the project appropriately scoped.
+- **Architectural decisions were human-owned.** AI implemented what it was asked but did
+  not independently drive the choices that mattered: a single Go module (not
+  multi-module), one generic root Makefile (not per-component), logrus over slog for
+  ConfigMap-tunable logging, the long-format data model keyed on `uuid`, and a genuine
+  from-scratch TCP broker rather than wrapping a framework.
+- **Correctness bugs.** A SQL type typo (`BIGGABLE` → `BIGINT`) and an unused test helper
+  that broke the build — both caught by the human through build validation.
+- **A flaky test.** The consumer-group load-sharing test was timing-dependent; the human
+  diagnosed it and fixed it by subscribing both consumers and letting the rebalance settle
+  before publishing, then stress-tested it.
+- **Environment and toolchain friction.** Go toolchain alignment with `golang:1.25`, image
+  compatibility, `PATH` issues, and local Kubernetes setup all needed human steering.
+- **A design boundary found only in validation.** `kubectl scale` leaves a new streamer
+  idle because its `REPLICAS` env is static, so streamers must be scaled via Helm —
+  surfaced by the human probing behavior, then documented as a known boundary.
+- **Over-engineering and verbosity.** AI drafts trended wordy and over-abstracted; repeated
+  "keep it simple" / "is this too wordy?" direction was needed to keep the scope tight.
 
 ## Prompts That Materially Shaped The Project
 
@@ -206,11 +87,11 @@ Some of the prompts that most influenced the final result are listed below.
 
 ### Core Architecture
 
-- **"Build an elastic, scalable telemetry pipeline around a custom message queue — no Kafka, RabbitMQ, or ZeroMQ."**
-- **"Design the queue to scale, preserve ordering, and stay reliable without reinventing Kafka."**
-- **"How do we avoid duplicate telemetry under at-least-once delivery?"**
-- **"PostgreSQL, TimescaleDB, Cassandra, InfluxDB, or MongoDB?"**
-- **"Store DCGM as long-format generic samples keyed by UUID rather than host-local GPU identifiers."**
+- **"Build an elastic, scalable telemetry pipeline around a custom message queue — no Kafka, RabbitMQ, or ZeroMQ."** → the from-scratch TCP broker as the centrepiece rather than a library.
+- **"Design the queue to scale, preserve ordering, and stay reliable without reinventing Kafka."** → partitions for parallelism, per-GPU ordering, at-least-once — deliberately minimal.
+- **"How do we avoid duplicate telemetry under at-least-once delivery?"** → idempotent writes via a unique `(uuid, metric, ts)` constraint plus persist-then-ack.
+- **"PostgreSQL, TimescaleDB, Cassandra, InfluxDB, or MongoDB?"** → the database comparison and the PostgreSQL choice, with TimescaleDB as an upgrade path.
+- **"Store DCGM as long-format generic samples keyed by UUID rather than host-local GPU identifiers."** → the long-format data model, safe against cross-host id collisions.
 
 ### Reliability and Failure Handling
 
